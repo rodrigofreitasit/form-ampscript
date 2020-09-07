@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unsubscriber Center</title>
+</head>
+<body>
+    %%[
+        /*Validação se email está na base*/
+        set @subscriberkey = RequestParameter('s')
+        set @email = RequestParameter('e')
+        set @status = 'Unsubscribed'
+
+        IF Empty(@email) THEN
+            set @msg ='Seu e-mail nao esta na base de dados'
+            set @link = Concat(CloudPagesURL(2764,'m',@msg))
+            Redirect(@link)
+        ENDIF
+        
+        /*Realizando optout no allsub*/
+        Set @Subscriber = CreateObject('Subscriber')
+        SetObjectProperty(@Subscriber, "SubscriberKey", @subscriberkey)
+        SetObjectProperty(@Subscriber, "EmailAddress", @email)
+        SetObjectProperty(@Subscriber, "Status", @status)
+        Set @status = InvokeUpdate(@Subscriber, @createErrDesc, @createErrNo, @createErrOpts)
+
+        set @controle = RequestParameter('controle')
+
+        IF empty(@controle) THEN
+    ]%%
+    <form action="#" method="post">
+        <input type="hidden" name="controle" value="%%=Now()=%%">
+        <label for="frequencia">Alta frequencia</label>
+        <input type="checkbox" name="frequencia" id="frequencia" value="true">
+      	<br>
+      	<label for="naoqueromais">naoqueromais</label>
+        <input type="checkbox" name="naoqueromais" id="naoqueromais" value="true">
+        <input type="submit" value="Responder">
+    </form>
+    %%[
+        /*captura o motivo*/
+        ELSE
+        set @msg ="Obrigado pela resposta"
+        set @input1 = RequestParameter('frequencia')
+        set @input2= RequestParameter('naoqueromais')
+
+        /*Insere na DE*/
+         UpsertDE('MOTIVO_USUB', 1, 'SubscriberKey', @subscriberkey, 'Email', @email,'Muitos_Emails',@input1,'naoqueromais',@input2)
+            
+            set @link = Concat(CloudPagesURL(2764,'m',@msg,'e',@email))
+            Redirect(@link)
+        ENDIF
+    ]%%
+</body>
+</html>

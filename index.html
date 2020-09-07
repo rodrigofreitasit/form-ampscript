@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Central de Preferencias C6 Bank</title>
+  </head>
+  <body>
+    %%[ 
+        /*Variaveis Ampscript*/
+        VAR @email,@subscriberkey,@msg,@link
+        
+        /*Validação de email e sub na base de dados*/
+        set @subscriberkey = requestParameter('s') 
+        set @email = requestParameter('e') 
+        IF EMPTY(@email) OR EMPTY(@subscriberkey)THEN
+            SET @msg ="Seu email nao foi encontrado na base de dados"
+            set @link= Concat(CloudPagesURL(2764,'m',@msg))
+            Redirect(@link)
+        ENDIF
+
+        set @linkUnsub = Concat(CloudPagesURL(2765,'e',@email,'s',@subscriberkey,'m','Unsubscriber'))
+        set @de = LookupRows('CP_UNSUB','Email',@email)
+
+        IF RowCount(@de) > 0 THEN
+        set @row = Row(@de,1)
+        set @pref1 = Field(@row,'Pref01')
+        ENDIF
+
+        IF @pref1 =='True' THEN
+        set @chk1 ='checked="checked"'        
+        ENDIF
+
+        SET @controle = RequestParameter('controle')
+        if Empty(@controle) then
+    ]%%
+    <header><h1>Central de Preferencias</h1></header>
+    <section>
+      <form action="#" method="POST">
+      <input type="hidden" name="controle" value="%%=Now()=%%"/>
+        <label for="list1">List 1</label>
+        <input type="checkbox" %%=v(@chk1)=%% name="list1" id="list1" value="true" />
+        <input type="submit" value="Salvar preferencia"><br>
+        <a href="%%=v(@linkUnsub)=%%" target="_blank">cancelad assinatura</a>
+      </form>
+    %%[
+        ELSE
+        SET @list1 = requestParameter('list1')
+
+        UpsertDE('CP_UNSUB', 1, 'SubscriberKey', @subscriberkey, 'Email', @email,'Pref01',@list1)
+
+        set @msg=' Salvo com sucesso'
+        set @link= Concat(CloudPagesURL(2764,'e',@email,'m',@msg))
+        Redirect(@link)
+        ENDIF
+    ]%%
+    </section>
+  </body>
+</html>
